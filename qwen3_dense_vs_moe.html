@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen3-VL Dense vs MoE 架构对比</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            font-size: 1.2em;
+            margin-bottom: 30px;
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .model-section {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        .model-title {
+            text-align: center;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            padding: 10px;
+            border-radius: 10px;
+        }
+
+        .dense-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .moe-title {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .architecture-box {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .component-title {
+            font-size: 1.3em;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .block-diagram {
+            background: #f0f0f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .block {
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            padding: 10px;
+            margin: 10px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .vision-block {
+            border-color: #667eea;
+            background: linear-gradient(to right, #667eea10, #764ba210);
+        }
+
+        .llm-block {
+            border-color: #f093fb;
+            background: linear-gradient(to right, #f093fb10, #f5576c10);
+        }
+
+        .moe-block {
+            border-color: #ff6b6b;
+            background: linear-gradient(to right, #ff6b6b10, #feca5710);
+        }
+
+        .arrow {
+            text-align: center;
+            color: #666;
+            font-size: 1.5em;
+            margin: 5px 0;
+        }
+
+        .params-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        .params-table th, .params-table td {
+            padding: 8px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .params-table th {
+            background: #f0f0f0;
+            font-weight: 600;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+
+        .diff-marker {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.9em;
+            margin-left: 5px;
+        }
+
+        .diff-new {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .diff-changed {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .expert-diagram {
+            background: #fff;
+            border: 2px dashed #ff6b6b;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .expert-grid {
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 5px;
+            margin: 10px 0;
+        }
+
+        .expert-box {
+            width: 30px;
+            height: 30px;
+            background: #e0e0e0;
+            border: 1px solid #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+            border-radius: 3px;
+        }
+
+        .expert-active {
+            background: #ff6b6b;
+            color: white;
+            border-color: #ff4444;
+        }
+
+        .stats-box {
+            background: linear-gradient(135deg, #667eea10 0%, #764ba210 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+        }
+
+        .stats-label {
+            font-weight: 600;
+            color: #555;
+        }
+
+        .stats-value {
+            color: #333;
+        }
+
+        .deepstack-diagram {
+            background: #f9f9f9;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        .deepstack-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin: 10px 0;
+        }
+
+        .deepstack-layer {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .flow-arrow {
+            color: #667eea;
+            font-size: 2em;
+        }
+
+        .mrope-pattern {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow-x: auto;
+        }
+
+        .attention-diagram {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .attention-type {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin: 5px;
+            font-weight: 600;
+        }
+
+        .full-attention {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .batched-attention {
+            background: #fff3cd;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Qwen3-VL 架构对比分析</h1>
+        <p class="subtitle">Dense (7B) vs MoE (30B-A3B) 详细架构对比</p>
+
+        <div class="comparison-container">
+            <!-- Dense Model -->
+            <div class="model-section">
+                <div class="model-title dense-title">Qwen3-VL Dense (7B)</div>
+
+                <!-- Vision Encoder -->
+                <div class="architecture-box">
+                    <div class="component-title">🎨 Vision Encoder</div>
+
+                    <table class="params-table">
+                        <tr><th>参数</th><th>值</th></tr>
+                        <tr><td>层数</td><td>24</td></tr>
+                        <tr><td>Hidden Size</td><td>1024</td></tr>
+                        <tr><td>MLP Size</td><td>4096</td></tr>
+                        <tr><td>Attention Heads</td><td>16</td></tr>
+                        <tr><td>Patch Size</td><td>14×14</td></tr>
+                        <tr><td>Output Dim</td><td>2560</td></tr>
+                        <tr><td>Normalization</td><td>LayerNorm</td></tr>
+                    </table>
+
+                    <div class="attention-diagram">
+                        <div class="attention-type full-attention">Full Attention</div>
+                        <p style="margin: 10px 0; color: #666;">所有视觉token之间完全交互</p>
+                    </div>
+
+                    <div class="block-diagram">
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">Vision Block 结构</div>
+                        <div class="block vision-block">Input</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">LayerNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Multi-Head Attention<br>(16 heads, Full)</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">LayerNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">MLP (1024 → 4096 → 1024)<br>SiLU activation</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Output</div>
+                    </div>
+                </div>
+
+                <!-- DeepStack -->
+                <div class="deepstack-diagram">
+                    <div class="component-title">🔄 DeepStack 特征提取</div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 5</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 0</div>
+                    </div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 11</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 1</div>
+                    </div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 17</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 2</div>
+                    </div>
+                </div>
+
+                <!-- LLM Decoder -->
+                <div class="architecture-box">
+                    <div class="component-title">🧠 LLM Decoder</div>
+
+                    <table class="params-table">
+                        <tr><th>参数</th><th>值</th></tr>
+                        <tr><td>层数</td><td>36</td></tr>
+                        <tr><td>Hidden Size</td><td>2560</td></tr>
+                        <tr><td>FFN Size</td><td>9728</td></tr>
+                        <tr><td>Q Heads</td><td>32</td></tr>
+                        <tr><td>KV Heads</td><td>8</td></tr>
+                        <tr><td>GQA Ratio</td><td>4:1</td></tr>
+                        <tr><td>Vocab Size</td><td>151,936</td></tr>
+                        <tr><td>Max Position</td><td>32,768</td></tr>
+                        <tr><td>Normalization</td><td>RMSNorm</td></tr>
+                        <tr><td>QK Norm</td><td>✓</td></tr>
+                    </table>
+
+                    <div class="block-diagram">
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">Decoder Block 结构</div>
+                        <div class="block llm-block">Input</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">RMSNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Multi-Head Attention<br>Q: 32 heads, KV: 8 heads<br>+ QK Norm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">RMSNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">FFN (2560 → 9728 → 2560)<br>SiLU activation</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Output</div>
+                    </div>
+                </div>
+
+                <!-- MRoPE -->
+                <div class="architecture-box">
+                    <div class="component-title">📐 MRoPE 位置编码</div>
+                    <div class="mrope-pattern">
+                        Type: Interleaved<br>
+                        Config: [24, 20, 20] (T, H, W)<br>
+                        Pattern: [T H W T H W T H W T H W ...]
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-box">
+                    <div class="component-title">📊 模型统计</div>
+                    <div class="stats-row">
+                        <span class="stats-label">总参数量:</span>
+                        <span class="stats-value">~7B</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">激活参数:</span>
+                        <span class="stats-value">~7B (100%)</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">推理FLOPs:</span>
+                        <span class="stats-value">~14 TFLOPs/token</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">显存需求:</span>
+                        <span class="stats-value">~14GB (fp16)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MoE Model -->
+            <div class="model-section">
+                <div class="model-title moe-title">Qwen3-VL MoE (30B-A3B)</div>
+
+                <!-- Vision Encoder -->
+                <div class="architecture-box">
+                    <div class="component-title">🎨 Vision Encoder</div>
+
+                    <table class="params-table">
+                        <tr><th>参数</th><th>值</th></tr>
+                        <tr><td>层数</td><td>27 <span class="diff-marker diff-changed">+3</span></td></tr>
+                        <tr><td>Hidden Size</td><td>1152 <span class="diff-marker diff-changed">+128</span></td></tr>
+                        <tr><td>MLP Size</td><td>4608 <span class="diff-marker diff-changed">+512</span></td></tr>
+                        <tr><td>Attention Heads</td><td>16</td></tr>
+                        <tr><td>Patch Size</td><td>16×16 <span class="diff-marker diff-changed">更大</span></td></tr>
+                        <tr><td>Output Dim</td><td>2048 <span class="diff-marker diff-changed">-512</span></td></tr>
+                        <tr><td>Normalization</td><td>LayerNorm</td></tr>
+                    </table>
+
+                    <div class="attention-diagram">
+                        <div class="attention-type batched-attention">Batched Attention (cu_seqlens)</div>
+                        <p style="margin: 10px 0; color: #666;">序列独立处理，序列内全注意力</p>
+                    </div>
+
+                    <div class="block-diagram">
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">Vision Block 结构</div>
+                        <div class="block vision-block">Input + cu_seqlens</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">LayerNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Multi-Head Attention<br>(16 heads, Batched)<br><span class="diff-marker diff-changed">cu_seqlens分割</span></div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">LayerNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">MLP (1152 → 4608 → 1152)<br>SiLU activation</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block vision-block">Output</div>
+                    </div>
+                </div>
+
+                <!-- DeepStack -->
+                <div class="deepstack-diagram">
+                    <div class="component-title">🔄 DeepStack 特征提取</div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 5</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 0</div>
+                    </div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 11</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 1</div>
+                    </div>
+                    <div class="deepstack-flow">
+                        <div class="deepstack-layer">Layer 17</div>
+                        <div class="flow-arrow">→</div>
+                        <div class="deepstack-layer">LLM Layer 2</div>
+                    </div>
+                </div>
+
+                <!-- LLM Decoder -->
+                <div class="architecture-box">
+                    <div class="component-title">🧠 LLM Decoder</div>
+
+                    <table class="params-table">
+                        <tr><th>参数</th><th>值</th></tr>
+                        <tr><td>层数</td><td>48 <span class="diff-marker diff-changed">+12</span></td></tr>
+                        <tr><td>Hidden Size</td><td>2048 <span class="diff-marker diff-changed">-512</span></td></tr>
+                        <tr><td>FFN Type</td><td>Sparse MoE <span class="diff-marker diff-new">NEW</span></td></tr>
+                        <tr><td>专家数量</td><td>128 <span class="diff-marker diff-new">NEW</span></td></tr>
+                        <tr><td>激活专家数</td><td>8/128 <span class="diff-marker diff-new">NEW</span></td></tr>
+                        <tr><td>专家中间维度</td><td>768 <span class="diff-marker diff-new">NEW</span></td></tr>
+                        <tr><td>Q Heads</td><td>32</td></tr>
+                        <tr><td>KV Heads</td><td>4 <span class="diff-marker diff-changed">-4</span></td></tr>
+                        <tr><td>GQA Ratio</td><td>8:1 <span class="diff-marker diff-changed">更激进</span></td></tr>
+                        <tr><td>Vocab Size</td><td>151,936</td></tr>
+                        <tr><td>Max Position</td><td>262,144 <span class="diff-marker diff-changed">8×</span></td></tr>
+                        <tr><td>Normalization</td><td>RMSNorm</td></tr>
+                        <tr><td>QK Norm</td><td>✓</td></tr>
+                    </table>
+
+                    <div class="block-diagram">
+                        <div style="text-align: center; font-weight: bold; margin-bottom: 10px;">Decoder Block 结构</div>
+                        <div class="block llm-block">Input</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">RMSNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Multi-Head Attention<br>Q: 32 heads, KV: 4 heads<br>+ QK Norm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">RMSNorm</div>
+                        <div class="arrow">↓</div>
+                        <div class="block moe-block">
+                            <strong>Sparse MoE Block</strong><br>
+                            <span class="diff-marker diff-new">替代标准FFN</span>
+                        </div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Residual Add</div>
+                        <div class="arrow">↓</div>
+                        <div class="block llm-block">Output</div>
+                    </div>
+                </div>
+
+                <!-- MoE Details -->
+                <div class="expert-diagram">
+                    <div class="component-title">🎯 MoE 专家系统详解</div>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                        <strong>Router机制:</strong>
+                        <ol style="margin: 10px 0;">
+                            <li>Gate网络: Linear(2048 → 128)</li>
+                            <li>计算专家分数: Softmax(logits)</li>
+                            <li>选择Top-8专家</li>
+                            <li>归一化权重</li>
+                            <li>加权求和专家输出</li>
+                        </ol>
+                    </div>
+
+                    <div style="text-align: center; margin: 20px 0;">
+                        <strong>128个专家池 (每次激活8个)</strong>
+                        <div class="expert-grid" style="grid-template-columns: repeat(16, 1fr); margin: 20px auto; max-width: 600px;">
+                            <!-- 前8个激活 -->
+                            <div class="expert-box expert-active">E1</div>
+                            <div class="expert-box">E2</div>
+                            <div class="expert-box expert-active">E3</div>
+                            <div class="expert-box">E4</div>
+                            <div class="expert-box">E5</div>
+                            <div class="expert-box expert-active">E6</div>
+                            <div class="expert-box">E7</div>
+                            <div class="expert-box">E8</div>
+                            <div class="expert-box expert-active">E9</div>
+                            <div class="expert-box">E10</div>
+                            <div class="expert-box">E11</div>
+                            <div class="expert-box expert-active">E12</div>
+                            <div class="expert-box">E13</div>
+                            <div class="expert-box">E14</div>
+                            <div class="expert-box expert-active">E15</div>
+                            <div class="expert-box">E16</div>
+                            <!-- 更多专家 -->
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box expert-active">E50</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box">...</div>
+                            <div class="expert-box expert-active">E128</div>
+                        </div>
+                        <p style="color: #666;">红色 = 当前token激活的专家</p>
+                    </div>
+
+                    <div style="background: #fff3cd; padding: 10px; border-radius: 8px; margin: 10px 0;">
+                        <strong>每个专家结构:</strong><br>
+                        gate_up_proj: 2048 → 768×2 (gate和up合并)<br>
+                        down_proj: 768 → 2048<br>
+                        激活函数: SiLU<br>
+                        参数量: ~4.7M/专家
+                    </div>
+                </div>
+
+                <!-- MRoPE -->
+                <div class="architecture-box">
+                    <div class="component-title">📐 MRoPE 位置编码</div>
+                    <div class="mrope-pattern">
+                        Type: Interleaved<br>
+                        Config: [24, 20, 20] (T, H, W)<br>
+                        Pattern: [T H W T H W T H W T H W ...]
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="stats-box">
+                    <div class="component-title">📊 模型统计</div>
+                    <div class="stats-row">
+                        <span class="stats-label">总参数量:</span>
+                        <span class="stats-value">~30B</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">激活参数:</span>
+                        <span class="stats-value">~3B (10%)</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">推理FLOPs:</span>
+                        <span class="stats-value">~6 TFLOPs/token</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">显存需求:</span>
+                        <span class="stats-value">~60GB (fp16)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Differences Summary -->
+        <div class="architecture-box" style="margin-top: 30px;">
+            <div class="component-title" style="text-align: center; font-size: 1.5em;">🔍 关键差异总结</div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 20px;">
+                <div style="background: #f0f8ff; padding: 15px; border-radius: 10px;">
+                    <h3 style="color: #667eea;">Vision Encoder</h3>
+                    <ul>
+                        <li>MoE更深：27层 vs 24层</li>
+                        <li>MoE使用批处理注意力(cu_seqlens)</li>
+                        <li>MoE更大Patch Size：16×16 vs 14×14</li>
+                        <li>Dense使用真全注意力</li>
+                    </ul>
+                </div>
+
+                <div style="background: #fff0f5; padding: 15px; border-radius: 10px;">
+                    <h3 style="color: #f093fb;">LLM Decoder</h3>
+                    <ul>
+                        <li>MoE更深更窄：48层×2048 vs 36层×2560</li>
+                        <li>MoE使用稀疏专家系统</li>
+                        <li>MoE更长序列：262K vs 32K</li>
+                        <li>MoE更激进GQA：8:1 vs 4:1</li>
+                    </ul>
+                </div>
+
+                <div style="background: #f0fff0; padding: 15px; border-radius: 10px;">
+                    <h3 style="color: #28a745;">共同特性</h3>
+                    <ul>
+                        <li>都有DeepStack机制</li>
+                        <li>都用Interleaved MRoPE</li>
+                        <li>都有QK Normalization</li>
+                        <li>LLM都用RMSNorm</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Trade-offs -->
+        <div class="architecture-box" style="margin-top: 30px;">
+            <div class="component-title" style="text-align: center; font-size: 1.5em;">⚖️ 性能权衡分析</div>
+
+            <table class="params-table" style="margin-top: 20px;">
+                <thead>
+                    <tr>
+                        <th>维度</th>
+                        <th>Qwen3-VL Dense (7B)</th>
+                        <th>Qwen3-VL MoE (30B-A3B)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>模型容量</strong></td>
+                        <td>7B固定参数</td>
+                        <td>30B参数池，专家专门化</td>
+                    </tr>
+                    <tr>
+                        <td><strong>计算效率</strong></td>
+                        <td>所有参数参与计算</td>
+                        <td>仅10%参数激活（3B）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>视觉处理</strong></td>
+                        <td>全局视觉理解（全注意力）</td>
+                        <td>批处理效率（cu_seqlens）</td>
+                    </tr>
+                    <tr>
+                        <td><strong>推理速度</strong></td>
+                        <td>快速，固定延迟</td>
+                        <td>中等，动态路由开销</td>
+                    </tr>
+                    <tr>
+                        <td><strong>批处理</strong></td>
+                        <td>高效，统一计算路径</td>
+                        <td>复杂，不同token不同专家</td>
+                    </tr>
+                    <tr>
+                        <td><strong>内存需求</strong></td>
+                        <td>~14GB (fp16)</td>
+                        <td>~60GB (fp16)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>适用场景</strong></td>
+                        <td>资源受限，实时应用</td>
+                        <td>复杂任务，长文档处理</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</body>
+</html>

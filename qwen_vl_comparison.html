@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qwen3-VL vs Qwen2.5-VL 架构对比分析</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .architecture-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 60px;
+        }
+
+        .model-architecture {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #e0e0e0;
+        }
+
+        .model-title {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 1.4em;
+            font-weight: bold;
+        }
+
+        .architecture-diagram {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        svg {
+            width: 100%;
+            height: auto;
+        }
+
+        .component-box {
+            fill: white;
+            stroke: #667eea;
+            stroke-width: 2;
+            rx: 5;
+        }
+
+        .vision-box {
+            fill: #e3f2fd;
+            stroke: #2196f3;
+            stroke-width: 2;
+            rx: 5;
+        }
+
+        .text-box {
+            fill: #fff3e0;
+            stroke: #ff9800;
+            stroke-width: 2;
+            rx: 5;
+        }
+
+        .special-box {
+            fill: #f3e5f5;
+            stroke: #9c27b0;
+            stroke-width: 2;
+            rx: 5;
+        }
+
+        .arrow {
+            stroke: #666;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+
+        text {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 40px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .comparison-table th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .comparison-table tr:hover {
+            background: #f5f5f5;
+        }
+
+        .section-title {
+            font-size: 1.8em;
+            color: #333;
+            margin: 40px 0 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #667eea;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .feature-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+        }
+
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 10px;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+
+        .code-block pre {
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .highlight {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: 600;
+            margin: 0 5px;
+        }
+
+        .badge-new {
+            background: #4caf50;
+            color: white;
+        }
+
+        .badge-improved {
+            background: #2196f3;
+            color: white;
+        }
+
+        .badge-unique {
+            background: #ff9800;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔬 Qwen3-VL vs Qwen2.5-VL 架构对比分析</h1>
+            <p>深度解析两代视觉语言模型的架构差异与技术创新</p>
+        </div>
+
+        <div class="content">
+            <!-- 架构对比图 -->
+            <h2 class="section-title">📐 完整架构对比图</h2>
+
+            <div class="architecture-container">
+                <!-- Qwen3-VL 架构图 -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen3-VL-4B-Instruct</div>
+                    <div class="architecture-diagram">
+                        <svg viewBox="0 0 500 800" xmlns="http://www.w3.org/2000/svg">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7"
+                                 refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#666" />
+                                </marker>
+                            </defs>
+
+                            <!-- Input -->
+                            <rect x="150" y="20" width="200" height="40" class="component-box"/>
+                            <text x="250" y="45" text-anchor="middle" font-size="14" font-weight="bold">Multimodal Input</text>
+
+                            <!-- Arrow -->
+                            <line x1="250" y1="60" x2="250" y2="90" class="arrow"/>
+
+                            <!-- Vision Encoder -->
+                            <g transform="translate(50, 100)">
+                                <rect x="0" y="0" width="180" height="280" class="vision-box"/>
+                                <text x="90" y="25" text-anchor="middle" font-size="16" font-weight="bold">Vision Encoder</text>
+                                <text x="90" y="45" text-anchor="middle" font-size="12">(ViT)</text>
+
+                                <!-- Vision Components -->
+                                <rect x="10" y="60" width="160" height="30" class="component-box"/>
+                                <text x="90" y="80" text-anchor="middle" font-size="11">Patch Embed (16×16)</text>
+
+                                <rect x="10" y="100" width="160" height="30" class="component-box"/>
+                                <text x="90" y="120" text-anchor="middle" font-size="11">Position Embedding</text>
+
+                                <rect x="10" y="140" width="160" height="30" class="component-box"/>
+                                <text x="90" y="160" text-anchor="middle" font-size="11">24 × Vision Blocks</text>
+
+                                <rect x="10" y="180" width="160" height="30" class="special-box"/>
+                                <text x="90" y="195" text-anchor="middle" font-size="11">DeepStack</text>
+                                <text x="90" y="205" text-anchor="middle" font-size="9">[Layer 5, 11, 17]</text>
+
+                                <rect x="10" y="220" width="160" height="30" class="component-box"/>
+                                <text x="90" y="240" text-anchor="middle" font-size="11">Patch Merger</text>
+
+                                <text x="90" y="265" text-anchor="middle" font-size="10" fill="#666">Hidden: 1024 → 2560</text>
+                            </g>
+
+                            <!-- Text Decoder -->
+                            <g transform="translate(270, 100)">
+                                <rect x="0" y="0" width="180" height="280" class="text-box"/>
+                                <text x="90" y="25" text-anchor="middle" font-size="16" font-weight="bold">Text Decoder</text>
+                                <text x="90" y="45" text-anchor="middle" font-size="12">(LLM)</text>
+
+                                <!-- Text Components -->
+                                <rect x="10" y="60" width="160" height="30" class="component-box"/>
+                                <text x="90" y="80" text-anchor="middle" font-size="11">Token Embedding</text>
+
+                                <rect x="10" y="100" width="160" height="30" class="special-box"/>
+                                <text x="90" y="115" text-anchor="middle" font-size="11">MRoPE [24,20,20]</text>
+                                <text x="90" y="125" text-anchor="middle" font-size="9">(Interleaved)</text>
+
+                                <rect x="10" y="140" width="160" height="30" class="component-box"/>
+                                <text x="90" y="160" text-anchor="middle" font-size="11">36 × Decoder Layers</text>
+
+                                <rect x="10" y="180" width="160" height="30" class="special-box"/>
+                                <text x="90" y="200" text-anchor="middle" font-size="11">QK Normalization</text>
+
+                                <rect x="10" y="220" width="160" height="30" class="component-box"/>
+                                <text x="90" y="240" text-anchor="middle" font-size="11">RMS Norm</text>
+
+                                <text x="90" y="265" text-anchor="middle" font-size="10" fill="#666">Hidden: 2560, Heads: 32</text>
+                            </g>
+
+                            <!-- Connections -->
+                            <path d="M 230 280 Q 250 300 270 280" class="arrow" stroke-dasharray="5,5"/>
+                            <text x="250" y="295" text-anchor="middle" font-size="10" fill="#9c27b0">DeepStack Injection</text>
+
+                            <!-- Arrow to output -->
+                            <line x1="250" y1="390" x2="250" y2="420" class="arrow"/>
+
+                            <!-- LM Head -->
+                            <rect x="150" y="430" width="200" height="40" class="component-box"/>
+                            <text x="250" y="455" text-anchor="middle" font-size="14" font-weight="bold">LM Head</text>
+
+                            <!-- Arrow to output -->
+                            <line x1="250" y1="470" x2="250" y2="500" class="arrow"/>
+
+                            <!-- Output -->
+                            <rect x="150" y="510" width="200" height="40" class="component-box"/>
+                            <text x="250" y="535" text-anchor="middle" font-size="14" font-weight="bold">Output (151,936 vocab)</text>
+
+                            <!-- Key Features -->
+                            <g transform="translate(20, 580)">
+                                <text x="0" y="0" font-size="12" font-weight="bold" fill="#667eea">Key Features:</text>
+                                <text x="0" y="20" font-size="11" fill="#666">• 4B Parameters (BF16)</text>
+                                <text x="0" y="40" font-size="11" fill="#666">• Max Seq: 262,144 tokens</text>
+                                <text x="0" y="60" font-size="11" fill="#666">• No GQA (32:32)</text>
+                                <text x="0" y="80" font-size="11" fill="#666">• DeepStack Visual Injection</text>
+                                <text x="0" y="100" font-size="11" fill="#666">• Position Embedding + RoPE</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Qwen2.5-VL 架构图 -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen2.5-VL-3B-Instruct</div>
+                    <div class="architecture-diagram">
+                        <svg viewBox="0 0 500 800" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Input -->
+                            <rect x="150" y="20" width="200" height="40" class="component-box"/>
+                            <text x="250" y="45" text-anchor="middle" font-size="14" font-weight="bold">Multimodal Input</text>
+
+                            <!-- Arrow -->
+                            <line x1="250" y1="60" x2="250" y2="90" class="arrow"/>
+
+                            <!-- Vision Encoder -->
+                            <g transform="translate(50, 100)">
+                                <rect x="0" y="0" width="180" height="280" class="vision-box"/>
+                                <text x="90" y="25" text-anchor="middle" font-size="16" font-weight="bold">Vision Encoder</text>
+                                <text x="90" y="45" text-anchor="middle" font-size="12">(ViT)</text>
+
+                                <!-- Vision Components -->
+                                <rect x="10" y="60" width="160" height="30" class="component-box"/>
+                                <text x="90" y="80" text-anchor="middle" font-size="11">Patch Embed (14×14)</text>
+
+                                <rect x="10" y="100" width="160" height="30" class="component-box"/>
+                                <text x="90" y="120" text-anchor="middle" font-size="11">RoPE Embedding</text>
+
+                                <rect x="10" y="140" width="160" height="30" class="special-box"/>
+                                <text x="90" y="155" text-anchor="middle" font-size="11">Window Attention</text>
+                                <text x="90" y="165" text-anchor="middle" font-size="9">(112px window)</text>
+
+                                <rect x="10" y="180" width="160" height="30" class="component-box"/>
+                                <text x="90" y="195" text-anchor="middle" font-size="11">32 × Vision Blocks</text>
+                                <text x="90" y="205" text-anchor="middle" font-size="9">Full: [7,15,23,31]</text>
+
+                                <rect x="10" y="220" width="160" height="30" class="component-box"/>
+                                <text x="90" y="240" text-anchor="middle" font-size="11">Patch Merger</text>
+
+                                <text x="90" y="265" text-anchor="middle" font-size="10" fill="#666">Hidden: 1280 → 2048</text>
+                            </g>
+
+                            <!-- Text Decoder -->
+                            <g transform="translate(270, 100)">
+                                <rect x="0" y="0" width="180" height="280" class="text-box"/>
+                                <text x="90" y="25" text-anchor="middle" font-size="16" font-weight="bold">Text Decoder</text>
+                                <text x="90" y="45" text-anchor="middle" font-size="12">(LLM)</text>
+
+                                <!-- Text Components -->
+                                <rect x="10" y="60" width="160" height="30" class="component-box"/>
+                                <text x="90" y="80" text-anchor="middle" font-size="11">Token Embedding</text>
+
+                                <rect x="10" y="100" width="160" height="30" class="special-box"/>
+                                <text x="90" y="115" text-anchor="middle" font-size="11">MRoPE [16,24,24]</text>
+                                <text x="90" y="125" text-anchor="middle" font-size="9">(Standard)</text>
+
+                                <rect x="10" y="140" width="160" height="30" class="component-box"/>
+                                <text x="90" y="160" text-anchor="middle" font-size="11">36 × Decoder Layers</text>
+
+                                <rect x="10" y="180" width="160" height="30" class="special-box"/>
+                                <text x="90" y="195" text-anchor="middle" font-size="11">Sliding Window</text>
+                                <text x="90" y="205" text-anchor="middle" font-size="9">(32,768 tokens)</text>
+
+                                <rect x="10" y="220" width="160" height="30" class="component-box"/>
+                                <text x="90" y="240" text-anchor="middle" font-size="11">RMS Norm</text>
+
+                                <text x="90" y="265" text-anchor="middle" font-size="10" fill="#666">Hidden: 2048, GQA: 8:1</text>
+                            </g>
+
+                            <!-- Direct Connection -->
+                            <line x1="230" y1="250" x2="270" y2="250" class="arrow"/>
+
+                            <!-- Arrow to output -->
+                            <line x1="250" y1="390" x2="250" y2="420" class="arrow"/>
+
+                            <!-- LM Head -->
+                            <rect x="150" y="430" width="200" height="40" class="component-box"/>
+                            <text x="250" y="455" text-anchor="middle" font-size="14" font-weight="bold">LM Head</text>
+
+                            <!-- Arrow to output -->
+                            <line x1="250" y1="470" x2="250" y2="500" class="arrow"/>
+
+                            <!-- Output -->
+                            <rect x="150" y="510" width="200" height="40" class="component-box"/>
+                            <text x="250" y="535" text-anchor="middle" font-size="14" font-weight="bold">Output (151,936 vocab)</text>
+
+                            <!-- Key Features -->
+                            <g transform="translate(20, 580)">
+                                <text x="0" y="0" font-size="12" font-weight="bold" fill="#667eea">Key Features:</text>
+                                <text x="0" y="20" font-size="11" fill="#666">• 3B Parameters (BF16)</text>
+                                <text x="0" y="40" font-size="11" fill="#666">• Max Seq: 128,000 tokens</text>
+                                <text x="0" y="60" font-size="11" fill="#666">• GQA 8:1 (16:2)</text>
+                                <text x="0" y="80" font-size="11" fill="#666">• Window + Full Attention</text>
+                                <text x="0" y="100" font-size="11" fill="#666">• Sliding Window (Text)</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 详细组件对比 -->
+            <h2 class="section-title">🔍 Vision Transformer (ViT) 详细对比</h2>
+
+            <div class="architecture-container">
+                <!-- Qwen3-VL ViT Details -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen3-VL Vision Transformer</div>
+                    <svg viewBox="0 0 450 600" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input Image -->
+                        <rect x="125" y="20" width="200" height="40" class="component-box"/>
+                        <text x="225" y="45" text-anchor="middle" font-size="12" font-weight="bold">Input Image/Video</text>
+
+                        <!-- Patch Embedding -->
+                        <rect x="125" y="80" width="200" height="50" class="vision-box"/>
+                        <text x="225" y="100" text-anchor="middle" font-size="11" font-weight="bold">3D Conv Patch Embed</text>
+                        <text x="225" y="115" text-anchor="middle" font-size="10">16×16×2 (S×S×T)</text>
+
+                        <!-- Position Embedding -->
+                        <rect x="50" y="150" width="150" height="40" class="special-box"/>
+                        <text x="125" y="170" text-anchor="middle" font-size="11">Learnable Pos Embed</text>
+                        <text x="125" y="185" text-anchor="middle" font-size="9">2304 positions</text>
+
+                        <!-- Rotary Embedding -->
+                        <rect x="250" y="150" width="150" height="40" class="special-box"/>
+                        <text x="325" y="170" text-anchor="middle" font-size="11">Rotary Embedding</text>
+                        <text x="325" y="185" text-anchor="middle" font-size="9">θ=10000</text>
+
+                        <!-- Vision Blocks -->
+                        <rect x="125" y="210" width="200" height="180" class="vision-box"/>
+                        <text x="225" y="230" text-anchor="middle" font-size="12" font-weight="bold">24 Vision Blocks</text>
+
+                        <!-- Block Details -->
+                        <rect x="145" y="245" width="160" height="35" class="component-box"/>
+                        <text x="225" y="265" text-anchor="middle" font-size="10">LayerNorm + Attention</text>
+
+                        <rect x="145" y="290" width="160" height="35" class="component-box"/>
+                        <text x="225" y="310" text-anchor="middle" font-size="10">LayerNorm + MLP (FFN)</text>
+
+                        <rect x="145" y="335" width="160" height="35" class="special-box"/>
+                        <text x="225" y="350" text-anchor="middle" font-size="10">DeepStack Output</text>
+                        <text x="225" y="360" text-anchor="middle" font-size="9">@ Layers 5, 11, 17</text>
+
+                        <!-- Patch Merger -->
+                        <rect x="125" y="410" width="200" height="50" class="vision-box"/>
+                        <text x="225" y="430" text-anchor="middle" font-size="11" font-weight="bold">Patch Merger</text>
+                        <text x="225" y="445" text-anchor="middle" font-size="10">1024 → 2560 dim</text>
+
+                        <!-- Output -->
+                        <rect x="125" y="480" width="200" height="40" class="component-box"/>
+                        <text x="225" y="505" text-anchor="middle" font-size="12" font-weight="bold">Vision Features</text>
+
+                        <!-- Parameters -->
+                        <g transform="translate(20, 540)">
+                            <text x="0" y="0" font-size="11" font-weight="bold" fill="#2196f3">Parameters:</text>
+                            <text x="0" y="18" font-size="10" fill="#666">• Hidden Size: 1024</text>
+                            <text x="0" y="34" font-size="10" fill="#666">• Heads: 16</text>
+                            <text x="0" y="50" font-size="10" fill="#666">• MLP Size: 4096</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Qwen2.5-VL ViT Details -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen2.5-VL Vision Transformer</div>
+                    <svg viewBox="0 0 450 600" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input Image -->
+                        <rect x="125" y="20" width="200" height="40" class="component-box"/>
+                        <text x="225" y="45" text-anchor="middle" font-size="12" font-weight="bold">Input Image/Video</text>
+
+                        <!-- Patch Embedding -->
+                        <rect x="125" y="80" width="200" height="50" class="vision-box"/>
+                        <text x="225" y="100" text-anchor="middle" font-size="11" font-weight="bold">3D Conv Patch Embed</text>
+                        <text x="225" y="115" text-anchor="middle" font-size="10">14×14×2 (S×S×T)</text>
+
+                        <!-- Window Processing -->
+                        <rect x="125" y="150" width="200" height="40" class="special-box"/>
+                        <text x="225" y="170" text-anchor="middle" font-size="11">Window Indexing</text>
+                        <text x="225" y="185" text-anchor="middle" font-size="9">112px windows</text>
+
+                        <!-- Vision Blocks -->
+                        <rect x="125" y="210" width="200" height="180" class="vision-box"/>
+                        <text x="225" y="230" text-anchor="middle" font-size="12" font-weight="bold">32 Vision Blocks</text>
+
+                        <!-- Block Details -->
+                        <rect x="145" y="245" width="160" height="35" class="special-box"/>
+                        <text x="225" y="260" text-anchor="middle" font-size="10">Window Attention</text>
+                        <text x="225" y="270" text-anchor="middle" font-size="9">28 layers</text>
+
+                        <rect x="145" y="290" width="160" height="35" class="special-box"/>
+                        <text x="225" y="305" text-anchor="middle" font-size="10">Full Attention</text>
+                        <text x="225" y="315" text-anchor="middle" font-size="9">Layers 7,15,23,31</text>
+
+                        <rect x="145" y="335" width="160" height="35" class="component-box"/>
+                        <text x="225" y="350" text-anchor="middle" font-size="10">RMSNorm + SwiGLU MLP</text>
+                        <text x="225" y="360" text-anchor="middle" font-size="9">Gate * Up → Down</text>
+
+                        <!-- Patch Merger -->
+                        <rect x="125" y="410" width="200" height="50" class="vision-box"/>
+                        <text x="225" y="430" text-anchor="middle" font-size="11" font-weight="bold">Patch Merger</text>
+                        <text x="225" y="445" text-anchor="middle" font-size="10">1280 → 2048 dim</text>
+
+                        <!-- Output -->
+                        <rect x="125" y="480" width="200" height="40" class="component-box"/>
+                        <text x="225" y="505" text-anchor="middle" font-size="12" font-weight="bold">Vision Features</text>
+
+                        <!-- Parameters -->
+                        <g transform="translate(20, 540)">
+                            <text x="0" y="0" font-size="11" font-weight="bold" fill="#2196f3">Parameters:</text>
+                            <text x="0" y="18" font-size="10" fill="#666">• Hidden Size: 1280</text>
+                            <text x="0" y="34" font-size="10" fill="#666">• Heads: 16</text>
+                            <text x="0" y="50" font-size="10" fill="#666">• MLP Size: 5120</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- LLM部分对比 -->
+            <h2 class="section-title">🧠 Large Language Model (LLM) 详细对比</h2>
+
+            <div class="architecture-container">
+                <!-- Qwen3-VL LLM Details -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen3-VL Language Model</div>
+                    <svg viewBox="0 0 450 650" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input -->
+                        <rect x="75" y="20" width="150" height="40" class="component-box"/>
+                        <text x="150" y="45" text-anchor="middle" font-size="11">Text Tokens</text>
+
+                        <rect x="250" y="20" width="150" height="40" class="vision-box"/>
+                        <text x="325" y="45" text-anchor="middle" font-size="11">Vision Features</text>
+
+                        <!-- Token Embedding -->
+                        <rect x="125" y="80" width="200" height="40" class="text-box"/>
+                        <text x="225" y="100" text-anchor="middle" font-size="11" font-weight="bold">Token Embedding</text>
+                        <text x="225" y="110" text-anchor="middle" font-size="9">Vocab: 151,936</text>
+
+                        <!-- MRoPE -->
+                        <rect x="125" y="140" width="200" height="50" class="special-box"/>
+                        <text x="225" y="160" text-anchor="middle" font-size="11" font-weight="bold">Interleaved MRoPE</text>
+                        <text x="225" y="175" text-anchor="middle" font-size="10">[24, 20, 20] (T,H,W)</text>
+
+                        <!-- Decoder Layers -->
+                        <rect x="125" y="210" width="200" height="220" class="text-box"/>
+                        <text x="225" y="230" text-anchor="middle" font-size="12" font-weight="bold">36 Decoder Layers</text>
+
+                        <!-- Layer Details -->
+                        <rect x="145" y="250" width="160" height="35" class="special-box"/>
+                        <text x="225" y="265" text-anchor="middle" font-size="10">QK Normalization</text>
+                        <text x="225" y="275" text-anchor="middle" font-size="9">RMSNorm on Q,K</text>
+
+                        <rect x="145" y="295" width="160" height="35" class="component-box"/>
+                        <text x="225" y="310" text-anchor="middle" font-size="10">Multi-Head Attention</text>
+                        <text x="225" y="320" text-anchor="middle" font-size="9">32 heads (no GQA)</text>
+
+                        <rect x="145" y="340" width="160" height="35" class="special-box"/>
+                        <text x="225" y="355" text-anchor="middle" font-size="10">DeepStack Fusion</text>
+                        <text x="225" y="365" text-anchor="middle" font-size="9">Early layers</text>
+
+                        <rect x="145" y="385" width="160" height="35" class="component-box"/>
+                        <text x="225" y="400" text-anchor="middle" font-size="10">FFN (SiLU)</text>
+                        <text x="225" y="410" text-anchor="middle" font-size="9">13,568 dim</text>
+
+                        <!-- RMS Norm -->
+                        <rect x="125" y="450" width="200" height="40" class="text-box"/>
+                        <text x="225" y="475" text-anchor="middle" font-size="11" font-weight="bold">Final RMS Norm</text>
+
+                        <!-- Output -->
+                        <rect x="125" y="510" width="200" height="40" class="component-box"/>
+                        <text x="225" y="535" text-anchor="middle" font-size="12" font-weight="bold">Hidden States</text>
+
+                        <!-- Parameters -->
+                        <g transform="translate(20, 570)">
+                            <text x="0" y="0" font-size="11" font-weight="bold" fill="#ff9800">Parameters:</text>
+                            <text x="0" y="18" font-size="10" fill="#666">• Hidden: 2560</text>
+                            <text x="0" y="34" font-size="10" fill="#666">• Heads: 32 (Q=K=V)</text>
+                            <text x="0" y="50" font-size="10" fill="#666">• Max Seq: 262,144</text>
+                        </g>
+                    </svg>
+                </div>
+
+                <!-- Qwen2.5-VL LLM Details -->
+                <div class="model-architecture">
+                    <div class="model-title">Qwen2.5-VL Language Model</div>
+                    <svg viewBox="0 0 450 650" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Input -->
+                        <rect x="75" y="20" width="150" height="40" class="component-box"/>
+                        <text x="150" y="45" text-anchor="middle" font-size="11">Text Tokens</text>
+
+                        <rect x="250" y="20" width="150" height="40" class="vision-box"/>
+                        <text x="325" y="45" text-anchor="middle" font-size="11">Vision Features</text>
+
+                        <!-- Token Embedding -->
+                        <rect x="125" y="80" width="200" height="40" class="text-box"/>
+                        <text x="225" y="100" text-anchor="middle" font-size="11" font-weight="bold">Token Embedding</text>
+                        <text x="225" y="110" text-anchor="middle" font-size="9">Vocab: 151,936</text>
+
+                        <!-- MRoPE -->
+                        <rect x="125" y="140" width="200" height="50" class="special-box"/>
+                        <text x="225" y="160" text-anchor="middle" font-size="11" font-weight="bold">Standard MRoPE</text>
+                        <text x="225" y="175" text-anchor="middle" font-size="10">[16, 24, 24] (T,H,W)</text>
+
+                        <!-- Decoder Layers -->
+                        <rect x="125" y="210" width="200" height="220" class="text-box"/>
+                        <text x="225" y="230" text-anchor="middle" font-size="12" font-weight="bold">36 Decoder Layers</text>
+
+                        <!-- Layer Details -->
+                        <rect x="145" y="250" width="160" height="35" class="special-box"/>
+                        <text x="225" y="265" text-anchor="middle" font-size="10">Grouped Query Attn</text>
+                        <text x="225" y="275" text-anchor="middle" font-size="9">16Q : 2KV (8:1)</text>
+
+                        <rect x="145" y="295" width="160" height="35" class="special-box"/>
+                        <text x="225" y="310" text-anchor="middle" font-size="10">Sliding Window</text>
+                        <text x="225" y="320" text-anchor="middle" font-size="9">32,768 tokens</text>
+
+                        <rect x="145" y="340" width="160" height="35" class="component-box"/>
+                        <text x="225" y="355" text-anchor="middle" font-size="10">Full Attention</text>
+                        <text x="225" y="365" text-anchor="middle" font-size="9">Direct fusion</text>
+
+                        <rect x="145" y="385" width="160" height="35" class="component-box"/>
+                        <text x="225" y="400" text-anchor="middle" font-size="10">SwiGLU FFN</text>
+                        <text x="225" y="410" text-anchor="middle" font-size="9">11,008 dim</text>
+
+                        <!-- RMS Norm -->
+                        <rect x="125" y="450" width="200" height="40" class="text-box"/>
+                        <text x="225" y="475" text-anchor="middle" font-size="11" font-weight="bold">Final RMS Norm</text>
+
+                        <!-- Output -->
+                        <rect x="125" y="510" width="200" height="40" class="component-box"/>
+                        <text x="225" y="535" text-anchor="middle" font-size="12" font-weight="bold">Hidden States</text>
+
+                        <!-- Parameters -->
+                        <g transform="translate(20, 570)">
+                            <text x="0" y="0" font-size="11" font-weight="bold" fill="#ff9800">Parameters:</text>
+                            <text x="0" y="18" font-size="10" fill="#666">• Hidden: 2048</text>
+                            <text x="0" y="34" font-size="10" fill="#666">• Heads: 16Q, 2KV</text>
+                            <text x="0" y="50" font-size="10" fill="#666">• Max Seq: 128,000</text>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 核心差异对比表 -->
+            <h2 class="section-title">📊 核心参数对比表</h2>
+
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>组件</th>
+                        <th>参数</th>
+                        <th>Qwen3-VL-4B</th>
+                        <th>Qwen2.5-VL-3B</th>
+                        <th>差异说明</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="7"><strong>Vision Encoder</strong></td>
+                        <td>层数</td>
+                        <td>24层</td>
+                        <td>32层</td>
+                        <td>Qwen2.5更深的视觉编码</td>
+                    </tr>
+                    <tr>
+                        <td>隐藏维度</td>
+                        <td>1024</td>
+                        <td>1280</td>
+                        <td>Qwen2.5更宽的特征表示</td>
+                    </tr>
+                    <tr>
+                        <td>Patch大小</td>
+                        <td>16×16</td>
+                        <td>14×14</td>
+                        <td>Qwen2.5更细粒度</td>
+                    </tr>
+                    <tr>
+                        <td>Position编码</td>
+                        <td>Learnable + RoPE</td>
+                        <td>仅RoPE</td>
+                        <td>Qwen3双重位置编码</td>
+                    </tr>
+                    <tr>
+                        <td>注意力机制</td>
+                        <td>标准Self-Attention</td>
+                        <td>Window + Full</td>
+                        <td>Qwen2.5效率优化</td>
+                    </tr>
+                    <tr>
+                        <td>特殊机制</td>
+                        <td>DeepStack [5,11,17]</td>
+                        <td>Window (112px)</td>
+                        <td>不同的优化策略</td>
+                    </tr>
+                    <tr>
+                        <td>输出维度</td>
+                        <td>2560</td>
+                        <td>2048</td>
+                        <td>匹配各自文本维度</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="8"><strong>Language Model</strong></td>
+                        <td>层数</td>
+                        <td>36层</td>
+                        <td>36层</td>
+                        <td>相同深度</td>
+                    </tr>
+                    <tr>
+                        <td>隐藏维度</td>
+                        <td>2560</td>
+                        <td>2048</td>
+                        <td>Qwen3更大容量</td>
+                    </tr>
+                    <tr>
+                        <td>注意力头</td>
+                        <td>32 (Q=K=V)</td>
+                        <td>16Q, 2KV (GQA)</td>
+                        <td>Qwen2.5使用GQA压缩</td>
+                    </tr>
+                    <tr>
+                        <td>FFN维度</td>
+                        <td>13,568</td>
+                        <td>11,008</td>
+                        <td>与隐藏层成比例</td>
+                    </tr>
+                    <tr>
+                        <td>最大序列长度</td>
+                        <td>262,144</td>
+                        <td>128,000</td>
+                        <td>Qwen3支持更长序列</td>
+                    </tr>
+                    <tr>
+                        <td>MRoPE配置</td>
+                        <td>[24,20,20] 交错式</td>
+                        <td>[16,24,24] 标准式</td>
+                        <td>不同的位置编码策略</td>
+                    </tr>
+                    <tr>
+                        <td>特殊优化</td>
+                        <td>QK Norm</td>
+                        <td>Sliding Window</td>
+                        <td>不同的优化重点</td>
+                    </tr>
+                    <tr>
+                        <td>视觉融合</td>
+                        <td>DeepStack注入</td>
+                        <td>直接融合</td>
+                        <td>Qwen3多层次融合</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- 技术创新对比 -->
+            <h2 class="section-title">💡 关键技术创新</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🎯 Qwen3-VL: DeepStack机制</h3>
+                    <p>在Vision Encoder的第5、11、17层提取中间特征，注入到Language Model的早期层中，实现多层次的视觉-文本融合。这种设计让模型能够在不同抽象层次上理解视觉信息。</p>
+                    <div class="code-block">
+                        <pre>deepstack_visual_indexes = [5, 11, 17]
+# 每层独立的PatchMerger
+for idx in deepstack_indexes:
+    merger = PatchMerger(config)
+    features = merger(hidden_states)</pre>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🪟 Qwen2.5-VL: Window Attention</h3>
+                    <p>将图像分割成112×112像素的窗口进行局部注意力计算，仅在关键层(7,15,23,31)使用全局注意力。大幅降低计算复杂度，特别适合高分辨率图像处理。</p>
+                    <div class="code-block">
+                        <pre>window_size = 112
+fullatt_blocks = [7, 15, 23, 31]
+# O(window²) vs O(seq²)
+complexity_reduction = seq_len / window_size</pre>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🔄 Qwen3-VL: Interleaved MRoPE</h3>
+                    <p>交错式多分辨率位置编码，将T、H、W维度交错排列[THWTHW...]，而非简单分块[TTT...HHH...WWW]，提供更精细的3D位置信息。</p>
+                    <div class="code-block">
+                        <pre>mrope_section = [24, 20, 20]
+# 交错式排列
+for dim in [H, W]:
+    idx = slice(offset, length, 3)
+    freqs_t[..., idx] = freqs[dim]</pre>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>⚡ Qwen2.5-VL: GQA优化</h3>
+                    <p>使用8:1的Grouped Query Attention（16个Q头对应2个KV头），大幅减少KV cache内存占用，提升推理效率，特别适合批处理场景。</p>
+                    <div class="code-block">
+                        <pre>num_attention_heads = 16
+num_key_value_heads = 2
+# 内存节省: 87.5%
+memory_saving = 1 - (2/16)</pre>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>📐 Qwen3-VL: QK Normalization</h3>
+                    <p>在Query和Key上应用RMSNorm，稳定注意力计算，防止训练过程中的梯度爆炸，特别是在处理长序列时效果显著。</p>
+                    <div class="code-block">
+                        <pre>self.q_norm = RMSNorm(head_dim)
+self.k_norm = RMSNorm(head_dim)
+q = self.q_norm(q_states)
+k = self.k_norm(k_states)</pre>
+                    </div>
+                </div>
+
+                <div class="feature-card">
+                    <h3>🎭 Qwen2.5-VL: SwiGLU激活</h3>
+                    <p>Vision和Text模块都采用SwiGLU（Swish-Gated Linear Unit），提供更强的非线性表达能力，相比传统FFN有更好的梯度流动。</p>
+                    <div class="code-block">
+                        <pre>def forward(self, x):
+    # SwiGLU: gate * up → down
+    gate = self.act_fn(self.gate_proj(x))
+    up = self.up_proj(x)
+    return self.down_proj(gate * up)</pre>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 性能对比 -->
+            <h2 class="section-title">⚡ 性能与效率分析</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>计算复杂度对比</h3>
+                    <table style="width: 100%; margin-top: 10px;">
+                        <tr>
+                            <td><strong>组件</strong></td>
+                            <td><strong>Qwen3-VL</strong></td>
+                            <td><strong>Qwen2.5-VL</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Vision</td>
+                            <td>O(24×L²×1024)</td>
+                            <td>O(28×W²+4×L²)×1280</td>
+                        </tr>
+                        <tr>
+                            <td>Text</td>
+                            <td>O(36×L²×2560)</td>
+                            <td>O(36×W×2048×0.125)</td>
+                        </tr>
+                        <tr>
+                            <td>总参数</td>
+                            <td>~4B</td>
+                            <td>~3B</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="feature-card">
+                    <h3>内存占用对比</h3>
+                    <table style="width: 100%; margin-top: 10px;">
+                        <tr>
+                            <td><strong>场景</strong></td>
+                            <td><strong>Qwen3-VL</strong></td>
+                            <td><strong>Qwen2.5-VL</strong></td>
+                        </tr>
+                        <tr>
+                            <td>模型权重</td>
+                            <td>~8GB (BF16)</td>
+                            <td>~6GB (BF16)</td>
+                        </tr>
+                        <tr>
+                            <td>KV Cache</td>
+                            <td>标准</td>
+                            <td>-87.5% (GQA)</td>
+                        </tr>
+                        <tr>
+                            <td>批处理</td>
+                            <td>受限</td>
+                            <td>优化</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <div class="feature-card">
+                    <h3>推理速度对比</h3>
+                    <table style="width: 100%; margin-top: 10px;">
+                        <tr>
+                            <td><strong>指标</strong></td>
+                            <td><strong>Qwen3-VL</strong></td>
+                            <td><strong>Qwen2.5-VL</strong></td>
+                        </tr>
+                        <tr>
+                            <td>Prefill</td>
+                            <td>较慢</td>
+                            <td>快（Window）</td>
+                        </tr>
+                        <tr>
+                            <td>Decode</td>
+                            <td>标准</td>
+                            <td>快（GQA）</td>
+                        </tr>
+                        <tr>
+                            <td>长序列</td>
+                            <td>支持262K</td>
+                            <td>优化至128K</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 应用场景建议 -->
+            <h2 class="section-title">🎯 应用场景建议</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card" style="border-left-color: #4caf50;">
+                    <h3>✅ Qwen3-VL-4B 最佳场景</h3>
+                    <ul style="margin-top: 10px; padding-left: 20px; color: #666;">
+                        <li>超长文档+图像理解（支持262K上下文）</li>
+                        <li>需要深度视觉语义理解的复杂任务</li>
+                        <li>学术研究和精确分析场景</li>
+                        <li>质量优先于速度的企业应用</li>
+                        <li>需要多层次视觉特征的任务</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card" style="border-left-color: #2196f3;">
+                    <h3>✅ Qwen2.5-VL-3B 最佳场景</h3>
+                    <ul style="margin-top: 10px; padding-left: 20px; color: #666;">
+                        <li>实时视觉问答和对话系统</li>
+                        <li>高分辨率图像处理（14×14 patches）</li>
+                        <li>边缘设备和移动端部署</li>
+                        <li>高并发服务和批处理场景</li>
+                        <li>成本敏感的商业部署</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 总结 -->
+            <h2 class="section-title">📝 总结</h2>
+
+            <div style="background: #f8f9fa; padding: 30px; border-radius: 10px; margin-top: 30px;">
+                <h3 style="color: #667eea; margin-bottom: 20px;">架构演进趋势</h3>
+                <p style="line-height: 1.8; color: #666;">
+                    从Qwen3-VL到Qwen2.5-VL的演进体现了视觉语言模型的几个重要发展方向：
+                </p>
+                <ul style="margin-top: 15px; padding-left: 30px; line-height: 1.8; color: #666;">
+                    <li><strong>效率优化</strong>：Window Attention、GQA、Sliding Window等技术大幅提升推理效率</li>
+                    <li><strong>视觉增强</strong>：更深的Vision Encoder（32层）、更细的Patch粒度（14×14）</li>
+                    <li><strong>架构简化</strong>：去除DeepStack等复杂机制，采用直接融合</li>
+                    <li><strong>实用导向</strong>：从4B到3B参数，更适合实际部署</li>
+                    <li><strong>现代化设计</strong>：SwiGLU激活、统一RMSNorm等最新技术</li>
+                </ul>
+                <p style="margin-top: 20px; padding: 20px; background: white; border-radius: 10px; border-left: 4px solid #667eea;">
+                    <strong>选择建议：</strong>如果追求最高质量和处理超长序列，选择Qwen3-VL；如果需要高效部署和实时推理，选择Qwen2.5-VL。
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
